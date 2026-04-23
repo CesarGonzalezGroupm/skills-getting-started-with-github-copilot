@@ -19,13 +19,50 @@ document.addEventListener("DOMContentLoaded", () => {
         activityCard.className = "activity-card";
 
         const spotsLeft = details.max_participants - details.participants.length;
+        const participantsList = details.participants.length > 0
+          ? details.participants.map(email => `<li><span class="participant-email">${email}</span><button class="delete-btn" data-activity="${name}" data-email="${email}" title="Remove participant">✕</button></li>`).join('')
+          : '<li style="color: #999; font-style: italic;">No participants yet</li>';
 
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants-section">
+            <strong>Participants:</strong>
+            <ul class="participants-list">
+              ${participantsList}
+            </ul>
+          </div>
         `;
+       
+        // Add event listeners to delete buttons
+        const deleteButtons = activityCard.querySelectorAll('.delete-btn');
+        deleteButtons.forEach(button => {
+          button.addEventListener('click', async (event) => {
+            event.preventDefault();
+            const activity = button.getAttribute('data-activity');
+            const email = button.getAttribute('data-email');
+            
+            try {
+              const response = await fetch(
+                `/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`,
+                { method: 'DELETE' }
+              );
+              
+              if (response.ok) {
+                // Refresh the activities list to update the UI
+                fetchActivities();
+              } else {
+                const error = await response.json();
+                alert(`Error: ${error.detail || 'Failed to unregister'}`);
+              }
+            } catch (error) {
+              console.error('Error unregistering:', error);
+              alert('Failed to unregister. Please try again.');
+            }
+          });
+        });
 
         activitiesList.appendChild(activityCard);
 
